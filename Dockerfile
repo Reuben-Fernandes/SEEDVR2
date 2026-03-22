@@ -30,6 +30,11 @@ RUN git clone https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler \
     pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt \
         --quiet || true
 
+# ── SageAttention (SM89/Ada) ─────────────────────────────────────
+RUN pip install \
+    https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl \
+    --quiet
+
 # ── Ports ────────────────────────────────────────────────────────
 EXPOSE 8188
 
