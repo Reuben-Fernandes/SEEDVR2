@@ -1,64 +1,37 @@
 # ── Base ─────────────────────────────────────────────────────────
-FROM runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404
+FROM ubuntu:24.04
 
-ENV HF_HUB_ENABLE_HF_TRANSFER=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /workspace
 
 # ── System Dependencies ──────────────────────────────────────────
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-dev \
         git \
         git-lfs \
         ffmpeg \
         libgl1 \
         libglib2.0-0 \
-        build-essential \
-        ninja-build \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/lib/python3.12/EXTERNALLY-MANAGED
 
 # ── ComfyUI ──────────────────────────────────────────────────────
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
+RUN pip install -r /workspace/ComfyUI/requirements.txt --quiet
 
-WORKDIR /workspace/ComfyUI
-
-RUN python3 -m venv .venv && \
-    .venv/bin/pip install --upgrade pip --quiet && \
-    .venv/bin/pip install -r requirements.txt --quiet
-
-# ── Python Dependencies ──────────────────────────────────────────
-RUN .venv/bin/pip install \
-    "huggingface_hub[cli]" \
-    hf_transfer \
-    packaging \
-    ninja \
-    --quiet
-
-# ── Custom Nodes ─────────────────────────────────────────────────
-RUN cd /workspace/ComfyUI/custom_nodes && \
-    git clone https://github.com/ltdrdata/ComfyUI-Manager && \
-    git clone https://github.com/city96/ComfyUI-GGUF && \
-    git clone https://github.com/rgthree/rgthree-comfy && \
-    git clone https://github.com/yolain/ComfyUI-Easy-Use && \
-    git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite && \
-    git clone https://github.com/kijai/ComfyUI-KJNodes && \
-    git clone https://github.com/olduvai-jp/ComfyUI-S3-IO
-
-RUN for dir in /workspace/ComfyUI/custom_nodes/*/; do \
-        if [ -f "$dir/requirements.txt" ]; then \
-            /workspace/ComfyUI/.venv/bin/pip install -r "$dir/requirements.txt" --quiet || true; \
-        fi \
-    done
-
-# ── SageAttention (SM89/Ada - compiled on RTX 4090) ──────────────
-RUN .venv/bin/pip install \
-    https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl \
-    --quiet
+# ── SeedVR2 Node ─────────────────────────────────────────────────
+RUN git clone https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler \
+        /workspace/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler && \
+    pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt \
+        --quiet || true
 
 # ── Ports ────────────────────────────────────────────────────────
 EXPOSE 8188
-EXPOSE 8888
 
 # ── Start Script ─────────────────────────────────────────────────
 COPY start.sh /start.sh
