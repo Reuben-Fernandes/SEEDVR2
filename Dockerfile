@@ -2,6 +2,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV HF_HUB_ENABLE_HF_TRANSFER=1
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /workspace
@@ -15,6 +16,7 @@ RUN apt-get update -qq && \
         git \
         git-lfs \
         ffmpeg \
+        curl \
         libgl1 \
         libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/* \
@@ -24,19 +26,27 @@ RUN apt-get update -qq && \
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 RUN pip install -r /workspace/ComfyUI/requirements.txt --quiet
 
-# ── SeedVR2 Node ─────────────────────────────────────────────────
-RUN git clone https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler \
-        /workspace/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler && \
-    pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt \
-        --quiet || true
-
-# ── SageAttention (SM89/Ada) ─────────────────────────────────────
+# ── Python Dependencies ──────────────────────────────────────────
 RUN pip install \
-    https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl \
-    --quiet
+        "huggingface_hub[cli]" \
+        hf_transfer \
+        --quiet
+
+# ── Custom Nodes ─────────────────────────────────────────────────
+RUN cd /workspace/ComfyUI/custom_nodes && \
+    git clone https://github.com/ltdrdata/ComfyUI-Manager && \
+    git clone https://github.com/rgthree/rgthree-comfy && \
+    git clone https://github.com/chrisgoringe/cg-use-everywhere
+
+RUN for dir in /workspace/ComfyUI/custom_nodes/*/; do \
+        if [ -f "$dir/requirements.txt" ]; then \
+            pip install -r "$dir/requirements.txt" --quiet || true; \
+        fi \
+    done
 
 # ── Ports ────────────────────────────────────────────────────────
 EXPOSE 8188
+EXPOSE 8888
 
 # ── Start Script ─────────────────────────────────────────────────
 COPY start.sh /start.sh
