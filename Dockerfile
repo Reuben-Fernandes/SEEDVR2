@@ -22,6 +22,11 @@ RUN apt-get update -qq && \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /usr/lib/python3.12/EXTERNALLY-MANAGED
 
+# ── PyTorch (pinned to cu128) ─────────────────────────────────────
+RUN pip install torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu128 \
+    --quiet
+
 # ── ComfyUI ──────────────────────────────────────────────────────
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 RUN pip install -r /workspace/ComfyUI/requirements.txt --quiet
